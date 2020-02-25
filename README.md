@@ -1,2 +1,2 @@
 # RL-Pursuit-Game
-Projet qui va mooner soon
+Projet très sérieux de RL
