@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 """
 Created on Sun Mar  1 12:19:23 2020
-
 @author: Romain
 """
 import numpy as np
@@ -14,6 +13,7 @@ class Environement:
     hunters = 0
     preys = 0
     agents = []
+    role = 1
     positions = []
     actions = []
     step = 0
@@ -38,25 +38,27 @@ class Environement:
         else:
             self.positons = positions
             for i in range(preys):
-                self.agents.append(Agent(0,positions[i]))
+                self.agents.append(Agent(0,positions[i+1]))
             for i in range(hunters):
-                self.agents.append(Agent(1,positions[i+preys]))
+                self.agents.append(Agent(1,positions[i+1+preys]))
     
-    def voisins(self, agent): #C'est encore à faire cette fonction
+    def voisins(self, position): #C'est encore à faire cette fonction
         return None
 
-    def select_possible_actons(self, agent): #Pareil ici
+    def select_possible_actons(self, position): #Pareil ici
         return self.actions
             
-    def step(self):
+    def step(self,action):
+        self.positions[0] += self.action_to_delta[action]
         for i,a in enumerate(self.agents):
-            voisins = self.voisins(a)
-            possible_actions = self.select_possible_actons(a)
+            voisins = self.voisins(a.position)
+            possible_actions = self.select_possible_actons(a.position)
             action = a.decision(voisins,possible_actions)
             new_position = self.move(a,action)
             self.positions[i] = new_position
         
         self.step += 1
+        return self.positions, self.done(), self.reward()
         
     def move(self, agent, action):
         new_position = agent.position + self.action_to_delta[action]
@@ -82,4 +84,3 @@ class Agent:
         
     def decision(self,voisions,possible_actions):
         return self.decision_function(voisions,possible_actions) # Par défaut c'est np.random.choice
-        
