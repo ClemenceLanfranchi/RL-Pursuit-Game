@@ -42,10 +42,10 @@ class Environement:
             for i in range(hunters):
                 self.agents.append(Agent(1,positions[i+preys]))
     
-    def voisins(self, agent):
+    def voisins(self, agent): #C'est encore à faire cette fonction
         return None
 
-    def select_possible_actons(self, agent):
+    def select_possible_actons(self, agent): #Pareil ici
         return self.actions
             
     def step(self):
@@ -81,5 +81,5 @@ class Agent:
         self.decision_function = decision_function
         
     def decision(self,voisions,possible_actions):
-        return self.decision_function(voisions,possible_actions)
+        return self.decision_function(voisions,possible_actions) # Par défaut c'est np.random.choice
         
