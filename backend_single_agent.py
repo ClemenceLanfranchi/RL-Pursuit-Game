@@ -39,11 +39,23 @@ class Environement:
             for i in range(preys):
                 self.agents.append(Agent(0,positions[hunters+i]))
                 
-    def voisins(self, position): #C'est encore à faire cette fonction
-        return None
+    def voisins(self, position): #pour l'instant c'est omniscient 
+        p = self.positions.copy()
+        p.remove(position)
+        return p
 
-    def select_possible_actons(self, position): #Pareil ici
-        return self.actions
+    def select_possible_actons(self, position): 
+        p = []
+        p.append(4)
+        if position[0]>0 and not position + self.action_to_delta[3] in self.positions:
+            p.append(3)
+        if position[0] < self.shape[0] and not position + self.action_to_delta[2] in self.positions:
+            p.append(2)
+        if position[1] > 0 and not position + self.action_to_delta[1] in self.positions:
+            p.append(1)
+        if position[1] < self.shape[1] and not position + self.action_to_delta[0] in self.positions:
+            p.append(0)
+        return p
             
     def step(self,actions):
         
