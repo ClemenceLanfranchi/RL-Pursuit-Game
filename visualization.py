@@ -85,4 +85,4 @@ class ImageResult :
 
 def show_video(images, n) :
     title = "result" + str(n) +".gif"
-    images[0].save(title,save_all=True, append_images=images[1:],duration=100, loop=False)
+    images[0].save(title,save_all=True, append_images=images[1:],duration=100, loop=False,optimize = True)
