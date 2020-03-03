@@ -26,12 +26,13 @@ class Environment:
     4:np.array([0,0])
     }
     
-    def __init__(self,shape=shape,nb_hunters = 4,positions = None, actions = list(range(4))):
+    def __init__(self,shape=shape,vision=vision, nb_hunters = 4,positions = None, actions = list(range(4))):
         self.shape = shape
         self.nb_hunters = nb_hunters
         self.actions = actions
         self.step_nb = 0
         self.init_positions = positions
+        self.vision = vision
         if positions == None:
             #hunters are put at the four corners of the environment and the prey at the center
             positions = [np.array([0,0]),np.array([0,self.shape-1]),np.array([self.shape-1,0]),np.array([self.shape-1, self.shape-1]),np.array([self.shape//2, self.shape//2])]
@@ -72,7 +73,7 @@ class Environment:
             a = self.hunters[i]
             possible_actions = self.select_possible_actions(a.position)
             if actions[i] in possible_actions :
-                pos_hunters.append(  self.hunters[i].position + self.action_to_delta[actions[i]])
+                pos_hunters.append(self.hunters[i].position + self.action_to_delta[actions[i]])
             else : 
                 pos_hunters.append (np.array(self.hunters[i].position))
                 
@@ -87,7 +88,7 @@ class Environment:
             for j in range(i+1,self.nb_hunters):
                 if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
                     moving[i+1]=False
-                    moving[j+1] = False
+                    moving[j+1]=False
         
         #update the agents positions if needed
         if moving[0] :
@@ -118,12 +119,13 @@ class Environment:
             self.prey.position=positions[-1]
         
     def reward(self):
+        vision = self.vision
         rewards = [0,0,0,0]
         for i in range(self.nb_hunters):
             if np.abs(self.hunters[i].position[0]-self.prey.position[0])+np.abs(self.hunters[i].position[1]-self.prey.position[1]) ==1: #the hunter is next to the prey
                 rewards[i]+=10
                 
-         if sum(rewards) == 40: #the 4 hunters have circled the prey
+        if sum(rewards) == 40: #the 4 hunters have circled the prey
             return [100,100,100,100];
         
         nb_possible_actions_prey = len(self.select_possible_actions(self.prey.position))
@@ -144,7 +146,7 @@ class Environment:
         return rewards
     
     def done(self):
-        if self.reward==100:
+        if np.sum(self.reward())==400:
             return True
         return False
 
