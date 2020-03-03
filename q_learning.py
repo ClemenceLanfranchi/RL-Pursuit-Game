@@ -21,6 +21,15 @@ gamma = 0.99
 epsilon = 0.5
 epsilon_decay = 0.999
 
+SARSA = "SARSA"
+Q_LEARNING = "Q_learning"
+EPSILON_GREEDY = "epsilon_greedy"
+SOFTMAX = "softmax"
+
+# Choose methods for learning and exploration
+rl_algorithm = SARSA #Q_LEARNING
+explore_method = EPSILON_GREEDY #SOFTMAX
+
 def surrounding_state(env, hunter):
     #positions of the hunters and prey and walls if they are visible
     #hunter : index of hunter in list of hunters
@@ -83,8 +92,25 @@ def q_learning_update(q,s,a,r,s_prime):
     #print("q_sprime",q[s_prime, :])
     #print("a", a)
     a_max = np.argmax(q[s_prime])
-    td = r + gamma * q[s_prime, a_max] - q[s, a]
-    return q[s,a] + alpha * td
+    td = r + gamma * q[s_prime][a_max] - q[s][a]
+    return q[s][a] + alpha * td
+
+# Compute SARSA update
+def sarsa_update(q,s,a,r,s_prime,a_prime):
+    td = r + gamma * q[s_prime][a_prime] - q[s][a]
+    return q[s][a] + alpha * td
+
+def softmax(q):
+    assert tau >= 0.0
+    q_tilde = q - np.max(q)
+    factors = np.exp(tau * q_tilde)
+    return factors / np.sum(factors)
+
+# Act with softmax
+def act_with_softmax(s, q):
+    prob_a = softmax(q[s, :])
+    cumsum_a = np.cumsum(prob_a)
+    return np.where(np.random.rand() < cumsum_a)[0][0]
 
 # Act with epsilon greedy
 def act_with_epsilon_greedy(s, q):
@@ -128,27 +154,24 @@ def main():
     n_episode = 1000
     print("n_episode ", n_episode)
     max_horizon = 100
-    eval_steps = 10
     
-    # Monitoring perfomance
-    window = deque(maxlen=100)
-    last_100 = 0
-
-    greedy_success_rate_monitor = np.zeros([n_episode,1])
-    greedy_discounted_return_monitor = np.zeros([n_episode,1])
-
-    behaviour_success_rate_monitor = np.zeros([n_episode,1])
-    behaviour_discounted_return_monitor = np.zeros([n_episode,1])
+    
     rewards_list = []
     for i_episode in range(n_episode):
-        
-        total_return = 0.0
         
         env.reset()
         states = visions(env)
         actions = []
-        for i in range(env.nb_hunters):
+        
+        # Select the first action in this episode
+        if explore_method == SOFTMAX:
+            for i in range(env.nb_hunters):
+            actions.append(act_with_softmax(states[i].tobytes(), q_table))
+        elif explore_method == EPSILON_GREEDY:
+            for i in range(env.nb_hunters):
             actions.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
+        else:
+            raise ValueError("Wrong Explore Method:".format(explore_method))
         
         images =[env.show()]
         
@@ -158,46 +181,50 @@ def main():
             obs_prime, rewards, done = env.step(actions)
             images.append(env.show())
 
-            states_prime = visions(env)
-            #total_return += np.power(gamma,i_step) *r
-            
+            states_prime = visions(env)         
 
             # Select an action
             actions_prime = []
-            for i in range(env.nb_hunters):
-                actions_prime.append(act_with_epsilon_greedy(states_prime[i].tobytes(), q_table))
-
+            if explore_method == SOFTMAX:
+                for i in range(env.nb_hunters):
+                    actions_prime.append(act_with_softmax(states_prime[i].tobytes(), q_table))
+            elif explore_method == EPSILON_GREEDY:
+                for i in range(env.nb_hunters):
+                    actions_prime.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
 
             # Update a Q value table
-            for i in range(env.nb_hunters):
-                q_table[states[i].tobytes(), actions[i]] = q_learning_update(q_table,states[i].tobytes(),actions[i],rewards[i],states_prime[i].tobytes())
+            if rl_algorithm == SARSA:
+                for i in range(env.nb_hunters):
+                    q_table[states[i].tobytes()][actions[i]] = sarsa_update(q_table,states[i].tobytes(),actions[i],rewards[i],states_prime[i].tobytes(),actions_prime[i])
 
+            elif rl_algorithm == Q_LEARNING:
+                for i in range(env.nb_hunters):
+                    q_table[states[i].tobytes()][actions[i]] = q_learning_update(q_table,states[i].tobytes(),actions[i],rewards[i],states_prime[i].tobytes())
+            else:
+                raise ValueError("Wrong RL algorithm:".format(rl_algorithm))
+                
             # Transition to new state
             states = states_prime.copy()
             actions = actions_prime.copy()
             
-
             if done:
-                window.append(np.sum(rewards))
-                last_100 = window.count(1)
-
-                #greedy_success_rate_monitor[i_episode-1,0], greedy_discounted_return_monitor[i_episode-1,0]= evaluate_policy(q_table,env,eval_steps,max_horizon)
-        
+                print("done")
                 break
         
         rewards_list.append(np.sum(rewards))
         
-        if i_episode%100==0:
+        if (i_episode+1)%1000==0:
             show_video(images, i_episode)
+            print(len(q_table))
 
-        # Schedule for epsilon
-        epsilon = epsilon * epsilon_decay
-        # Schedule for tau
-        tau = init_tau + i_episode * tau_inc
+        if (i_episode)%100==0:
+            # Schedule for epsilon
+            epsilon = epsilon * epsilon_decay
+            # Schedule for tau
+            tau = init_tau + i_episode * tau_inc
 
     plt.figure(0)
     plt.plot(rewards_list)
-    #plt.title("Greedy policy with {0} and {1}".format(rl_algorithm))
     plt.xlabel("Steps")
     plt.ylabel("rewards")
 
