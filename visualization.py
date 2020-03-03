@@ -7,6 +7,7 @@ Created on Sun Mar  1 18:19:26 2020
 """
 
 from PIL import Image, ImageDraw
+import copy
 k=30
 size = 30
 champ = 3
@@ -20,6 +21,8 @@ class ImageResult :
         self.image = Image.new('RGBA',[(k+2)*size,(k+2)*size],color =  "white")
 
     def draw_grid(self):
+        k = (self.k)
+        size = self.size
         draw = ImageDraw.Draw(self.image)
         for i in range (1,k+2):
             draw.line([(i*size,(k+1)*size),(i*size,size)],fill = (0,0,0,255),width = 2)
@@ -45,23 +48,40 @@ class ImageResult :
         champ = self.champ
         draw = ImageDraw.Draw(self.image)
         poly = [(max(size,(xy[0]+1-champ)*size),max(size,(xy[1]+1-champ)*size)),(max(size,(xy[0]+1-champ)*size),min(size*(k+1),(xy[1]+2+champ)*size)),(min(size*(k+1),(xy[0]+2+champ)*size),min(size*(k+1),(xy[1]+2+champ)*size)),(min(size*(k+1),(xy[0]+2+champ)*size),max(size,(xy[1]+1-champ)*size))]
-        print(poly)
         draw.polygon(poly,fill = (200,255,200,255))
 
     
     def show(self):
         self.image.show()
         
-res = ImageResult(k,size,champ)
-res.draw_shade([28,17])
-res.draw_shade([3,2])
-res.draw_shade([2,9])
-res.draw_shade([4,6])
-res.draw_case([2,9],False)
-res.draw_case([3,2],False)
-res.draw_case([4,6],False)
-res.draw_case([28,17],False)
-res.draw_case([23,16],True)
-res.draw_grid()
+    def draw_obs(self,positions):
+        for i in range(1,len(positions)):
+            self.draw_shade(list(positions[i]))
+        for i in range(1,len(positions)):
+            self.draw_case(list(positions[i]),False)
+        self.draw_case(list(positions[0]),True)
+        self.draw_grid()
+        return self.image
 
-res.show()
+        
+#images=[]      
+#res = ImageResult(k,size,champ)
+#res.draw_shade([28,17])
+#res.draw_shade([3,2])
+#res.draw_shade([2,9])
+#res.draw_shade([4,6])
+#images.append(copy.copy(res.image))
+#
+#res.draw_case([2,9],False)
+#res.draw_case([3,2],False)
+#res.draw_case([4,6],False)
+#res.draw_case([28,17],False)
+#res.draw_case([23,16],True)
+#images.append(copy.copy(res.image))
+#
+#res.draw_grid()
+#
+#images.append(res.image)    
+
+def show_video(images) :
+    images[0].save("result.gif",save_all=True, append_images=images[1:],duration=100, loop=False)

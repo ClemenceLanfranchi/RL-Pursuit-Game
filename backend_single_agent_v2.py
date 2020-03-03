@@ -4,7 +4,8 @@ Created on Sun Mar  1 12:19:23 2020
 @author: Romain
 """
 import numpy as np
-
+from visualization import ImageResult, show_video
+import time
 
 class Environement:
     
@@ -14,9 +15,8 @@ class Environement:
     hunters = 0
     preys = 0
     agents = []
-    positions = []
     actions = []
-    step = 0
+    step_nb = 0
     
     action_to_delta = {
     0:np.array([0,1]),
@@ -26,19 +26,20 @@ class Environement:
     4:np.array([0,0])
     }
     
-    def __init__(self,shape,nb_hunters = 4,positions = None, actions = list(range(4))):
+    def __init__(self,shape=15,nb_hunters = 4,positions = None, actions = list(range(4))):
         self.shape = shape
         self.nb_hunters = nb_hunters
         self.actions = actions
+        self.step_nb = 0
         
         if positions == None:
             #hunters are put at the four corners of the environment and the prey at the center
-            positions = [[0,0],[0,self.shape],[self.shape,0],[self.shape, self.shape],[self.shape//2+1, self.shape//2+1]]
+            positions = [[0,0],[0,self.shape-1],[self.shape-1,0],[self.shape-1, self.shape-1],[self.shape//2, self.shape//2]]
         
         self.hunters = []
         for i in range(nb_hunters):
             self.hunters.append(Agent(1,positions[i]))
-        self.prey = Agent(0, positions[self.nb_hunters+1])
+        self.prey = Agent(0, positions[self.nb_hunters])
     
     def move_prey(self, p_still=0.5):
         u = np.random.rand()
@@ -48,22 +49,17 @@ class Environement:
             possible_actions = self.select_possible_actions(self.prey.position)
             return np.random.choice(possible_actions[1:]) #so that we don't consider standing still
         
-                
-    def position_other_hunters(self, position): #pour l'instant c'est omniscient 
-        p = self.positions.copy()
-        p.remove(position)
-        return p
 
     def select_possible_actions(self, position): 
         p = []
         p.append(4)
         if position[0]>0 :
             p.append(3)
-        if position[0] < self.shape[0] :
+        if position[0] < self.shape -1 :
             p.append(2)
         if position[1] > 0 :
             p.append(1)
-        if position[1] < self.shape[1] :
+        if position[1] < self.shape -1:
             p.append(0)
         return p
             
@@ -77,71 +73,90 @@ class Environement:
             possible_actions = self.select_possible_actions(a.position)
             if actions[i] in possible_actions :
                 pos_hunters.append(  self.hunters[i].position + self.action_to_delta[actions[i]])
+            else : 
+                pos_hunters.append (np.array(self.hunters[i].position))
+                
         
+        
+        #check for incompatible behaviour
         moving = [True, True , True, True, True]
         for i in range(self.nb_hunters):
-            if pos_prey == pos_hunters[i]:
+            if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
                 moving[0]=False
                 moving[i+1] = False
             for j in range(i+1,self.nb_hunters):
-                if pos_hunters[i] == pos_hunters[j] :
+                if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
                     moving[i+1]=False
                     moving[j+1] = False
         
+        #update the agents positions if needed
         if moving[0] :
             self.prey.position = pos_prey
         for i in range(self.nb_hunters):
             if moving[i+1] :
                 self.hunters[i].position = pos_hunters[i]
         
-        self.step += 1
+        self.step_nb += 1
         
-        return self.visions(), self.done(), self.reward()
+        return self.get_all_positions(), self.done(), self.reward()
         
-    
+    def get_all_positions(self) :
+        positions = [self.prey.position]
+        for i in range(self.nb_hunters):
+            positions.append(self.hunters[i].position)
+        return np.array(positions)
     
     def surrounding_state(self,hunter):
+        #positions of the hunters and prey and walls if they are visible
+        #hunter : index of hunter in list of hunters
         vision = self.vision
         shape = self.shape
         state = []
         pos_hunter = self.hunters[hunter].position
         pos_prey = self.prey.position
+        
+        #position of the prey
         if np.abs(pos_prey[0]-pos_hunter[0])<=vision and np.abs(pos_prey[1]-pos_hunter[1])<=vision :
             state.append(pos_prey - pos_hunter)
         else : 
-            state.append(np.array([-1,-1]))
+            state.append(np.array([None,None]))
+            
+        #position of the hunters
         for i in range (self.nb_hunters):
             pos_other_hunter = self.hunters[i].position
             if i != hunter and np.abs(pos_other_hunter[0]-pos_hunter[0])<=vision and np.abs(pos_other_hunter[1]-pos_hunter[1])<=vision  :
                 state.append(pos_other_hunter - pos_hunter)
             else : 
-                state.append(np.array([-1,-1]))
+                state.append(np.array([None,None]))
+                
+        #position of the walls       
         if pos_hunter[0]<vision :
             pos_wall_x = -1-pos_hunter[0]
         elif pos_hunter[0]>=shape - vision :
             pos_wall_x = shape-pos_hunter[0]
         else :
-            pos_wall_x = -1
+            pos_wall_x = None
         if pos_hunter[1]<vision :
             pos_wall_y = -1-pos_hunter[1]
         elif pos_hunter[1]>=shape - vision :
             pos_wall_y = shape-pos_hunter[1]
         else :
-            pos_wall_y = -1    
+            pos_wall_y = None    
         
         state.append(np.array([pos_wall_x,pos_wall_y]))
         return state
     
     def visions(self):
+        #array of the surrounding states of all hunters
         visions = []
         for i in range(self.nb_hunters):
             visions.append(self.surrounding_state(i))
-        return visions
+        return np.array(visions)
         
     def reward(self):
         reward = 0
         for i in range(self.nb_hunters):
-            if np.abs(self.hunters[i].position[0]-self.prey.position[0])+np.abs(self.hunters[i].poisition[1]-self.prey.position[1]) ==1: #the hunter is next to the prey
+            if np.abs(self.hunters[i].position[0]-self.prey.position[0])+np.abs(self.hunters[i].position[1]-self.prey.position[1]) ==1: #the hunter is next to the prey
                 reward+=10
         
         if reward == 40: #the 4 hunters have circled the prey
@@ -161,8 +176,10 @@ class Environement:
             return True
         return False
 
-    
-    
+    def show(self):
+        picture = ImageResult(self.shape,30,self.vision)
+        return picture.draw_obs(self.get_all_positions())
+        #picture.show()
 
         
 
@@ -179,3 +196,16 @@ class Agent:
         
     def decision(self,voisions,possible_actions):
         return self.decision_function(voisions,possible_actions) # Par défaut c'est np.random.choice
+    
+
+def demo() :
+    env = Environement()
+    images =[env.show()]
+    for i in range(100):
+        env.step(np.random.randint(5, size=4))
+        images.append(env.show())
+    show_video(images)
+    return
+
+demo()
+    
