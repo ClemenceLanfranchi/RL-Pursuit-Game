@@ -23,12 +23,12 @@ epsilon_decay = 0.999
 
 SARSA = "SARSA"
 Q_LEARNING = "Q_learning"
-EPSILON_GREEDY = "epsilon_greedy"
+EPSILON_GREEDY = "epsilon-greedy"
 SOFTMAX = "softmax"
 
 # Choose methods for learning and exploration
-rl_algorithm = SARSA #Q_LEARNING
-explore_method = SOFTMAX  #EPSILON_GREEDY #SOFTMAX
+rl_algorithm = SARSA
+explore_method = EPSILON_GREEDY
 
 def surrounding_state(env, hunter):
     #positions of the hunters and prey and walls if they are visible
@@ -89,8 +89,6 @@ def visions(env):
 
 # Compute Q-Learning update
 def q_learning_update(q,s,a,r,s_prime):
-    #print("q_sprime",q[s_prime, :])
-    #print("a", a)
     a_max = np.argmax(q[s_prime])
     td = r + gamma * q[s_prime][a_max] - q[s][a]
     return q[s][a] + alpha * td
@@ -115,29 +113,10 @@ def act_with_softmax(s, q):
 # Act with epsilon greedy
 def act_with_epsilon_greedy(s, q):
     a = np.random.choice(np.argwhere(q[s]==np.max(q[s])).flatten())
-    #print("a greedy", a)
     if np.random.rand() < epsilon:
         a = np.random.randint(5)
     return a
 
-# Evaluate a policy on n runs
-def evaluate_policy(q,env,n,h):
-    success_rate = 0.0
-    mean_return = 0.0
-
-    for i in range(n):
-        discounted_return = 0.0
-        s = env.reset()
-
-        for step in range(h):
-            s,r, done = env.step(act_with_epsilon_greedy(s,q))
-            discounted_return += np.power(gamma,step) * r
-
-            if done:
-                success_rate += float(r)/n
-                mean_return += float(discounted_return)/n
-                break
-    return success_rate, mean_return
 
 def main():
     global epsilon
@@ -151,13 +130,14 @@ def main():
     q_table = defaultdict(lambda: np.zeros(n_a))
     
     # Experimental setup
-    n_episode = 10000
+    n_episode = 1000
     print("n_episode ", n_episode)
     max_horizon = 300
     
     
     rewards_list = []
     successes = []
+    nb_steps = []
     for i_episode in range(n_episode):
         
         env.reset()
@@ -192,7 +172,9 @@ def main():
                     actions_prime.append(act_with_softmax(states_prime[i].tobytes(), q_table))
             elif explore_method == EPSILON_GREEDY:
                 for i in range(env.nb_hunters):
-                    actions_prime.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
+                    actions_prime.append(act_with_epsilon_greedy(states_prime[i].tobytes(), q_table))
+            else:
+                raise ValueError("Wrong Explore Method:".format(explore_method))
 
             # Update a Q value table
             if rl_algorithm == SARSA:
@@ -211,14 +193,16 @@ def main():
             
             if done:
                 successes.append(1)
+                nb_steps.append(i_step)
                 break
             
             if i_step == max_horizon-1 :
                 successes.append(0)
+                nb_steps.append(i_step)
         
         rewards_list.append(np.sum(rewards))
         
-        if (i_episode+1)%1000==0:
+        if (i_episode+1)%100==0:
             show_video(images, i_episode)
             print(len(q_table))
 
@@ -230,16 +214,23 @@ def main():
 
     plt.figure(0)
     plt.plot([np.mean(rewards_list[i*100:(i+1)*100]) for i in range(n_episode//100)])
-    #plt.title("Greedy policy with {0} and {1}".format(rl_algorithm))
-    plt.xlabel("100 Steps")
-    plt.ylabel("rewards")
+    plt.title("Policy with {0} and {1}".format(rl_algorithm, explore_method))
+    plt.xlabel("Number of episodes (x100)")
+    plt.ylabel("Average rewards")
     plt.show()
     
     plt.figure(1)
     plt.plot([np.mean(successes[i*100:(i+1)*100]) for i in range(n_episode//100)])
-    #plt.title("Greedy policy with {0} and {1}".format(rl_algorithm))
-    plt.xlabel("Steps")
-    plt.ylabel("Success rate")
+    plt.title("Policy with {0} and {1}".format(rl_algorithm, explore_method))
+    plt.xlabel("Number of episodes (x100)")
+    plt.ylabel("Average success rate")
+    plt.show()
+    
+    plt.figure(2)
+    plt.plot([np.mean(nb_steps[i*100:(i+1)*100]) for i in range(n_episode//100)])
+    plt.title("Policy with {0} and {1}".format(rl_algorithm, explore_method))
+    plt.xlabel("Number of episodes (x100)")
+    plt.ylabel("Average time steps")
     plt.show()
         
 if __name__ == "__main__":
