@@ -14,7 +14,7 @@ from collections import deque
 
  
 # Meta parameters for the RL agent
-alpha = 0.1
+alpha = 0.05
 tau = init_tau = 1
 tau_inc = 0.01
 gamma = 0.99
@@ -28,8 +28,7 @@ SOFTMAX = "softmax"
 
 # Choose methods for learning and exploration
 rl_algorithm = SARSA #Q_LEARNING
-explore_method = EPSILON_GREEDY #SOFTMAX
-
+explore_method = SOFTMAX  #EPSILON_GREEDY #SOFTMAX
 
 def surrounding_state(env, hunter):
     #positions of the hunters and prey and walls if they are visible
@@ -96,14 +95,6 @@ def q_learning_update(q,s,a,r,s_prime):
     td = r + gamma * q[s_prime][a_max] - q[s][a]
     return q[s][a] + alpha * td
 
-# Act with epsilon greedy
-def act_with_epsilon_greedy(s, q):
-    a = np.random.choice(np.argwhere(q[s]==np.max(q[s])).flatten())
-    #print("a greedy", a)
-    if np.random.rand() < epsilon:
-        a = np.random.randint(5)
-    return a
-
 # Compute SARSA update
 def sarsa_update(q,s,a,r,s_prime,a_prime):
     td = r + gamma * q[s_prime][a_prime] - q[s][a]
@@ -117,10 +108,17 @@ def softmax(q):
 
 # Act with softmax
 def act_with_softmax(s, q):
-    prob_a = softmax(q[s, :])
+    prob_a = softmax(q[s])
     cumsum_a = np.cumsum(prob_a)
     return np.where(np.random.rand() < cumsum_a)[0][0]
 
+# Act with epsilon greedy
+def act_with_epsilon_greedy(s, q):
+    a = np.random.choice(np.argwhere(q[s]==np.max(q[s])).flatten())
+    #print("a greedy", a)
+    if np.random.rand() < epsilon:
+        a = np.random.randint(5)
+    return a
 
 # Evaluate a policy on n runs
 def evaluate_policy(q,env,n,h):
@@ -153,28 +151,28 @@ def main():
     q_table = defaultdict(lambda: np.zeros(n_a))
     
     # Experimental setup
-    n_episode = 1000
+    n_episode = 10000
     print("n_episode ", n_episode)
-    max_horizon = 100
+    max_horizon = 300
+    
     
     rewards_list = []
     successes = []
     for i_episode in range(n_episode):
         
-        
         env.reset()
         states = visions(env)
         actions = []
-         # Select the first action in this episode
-        if explore_method == SOFTMAX:
-            for i in range(env.nb_hunters):
-                actions.append(act_with_softmax(states[i].tobytes(), q_table))
-        elif explore_method == EPSILON_GREEDY:
+        
+        # Select the first action in this episode
+        if explore_method == EPSILON_GREEDY:
             for i in range(env.nb_hunters):
                 actions.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
+        elif explore_method == SOFTMAX:
+            for i in range(env.nb_hunters):
+                actions.append(act_with_softmax(states[i].tobytes(), q_table))
         else:
             raise ValueError("Wrong Explore Method:".format(explore_method))
-        
         
         images =[env.show()]
         rewards_episode = []
@@ -185,9 +183,7 @@ def main():
             obs_prime, rewards, done = env.step(actions)
             images.append(env.show())
             rewards_episode.append(sum(rewards))
-            states_prime = visions(env)
-            #total_return += np.power(gamma,i_step) *r
-            
+            states_prime = visions(env)         
 
             # Select an action
             actions_prime = []
@@ -213,24 +209,24 @@ def main():
             states = states_prime.copy()
             actions = actions_prime.copy()
             
-
             if done:
                 successes.append(1)
-        
                 break
+            
             if i_step == max_horizon-1 :
                 successes.append(0)
-                
-        rewards_list.append(np.mean(rewards_episode))
         
-        if i_episode%100==0:
+        rewards_list.append(np.sum(rewards))
+        
+        if (i_episode+1)%1000==0:
             show_video(images, i_episode)
+            print(len(q_table))
+
+        if (i_episode)%100==0:
+            # Schedule for epsilon
             epsilon = epsilon * epsilon_decay
-        # Schedule for epsilon
-        
-        
-        # Schedule for tau
-        tau = init_tau + i_episode * tau_inc
+            # Schedule for tau
+            tau = init_tau + i_episode * tau_inc
 
     plt.figure(0)
     plt.plot([np.mean(rewards_list[i*100:(i+1)*100]) for i in range(n_episode//100)])
@@ -249,5 +245,5 @@ def main():
 if __name__ == "__main__":
 
     main()
-    
-    
+        
+        
