@@ -82,7 +82,8 @@ class Environment:
         #check for incompatible behaviour
         moving = [True, True , True, True, True]
         conflit = True
-        while conflit:
+        s = 1
+        while conflit and s<5:
             flag = False
             for i in range(self.nb_hunters):
                 if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
@@ -100,6 +101,7 @@ class Environment:
                         flag = True
             if flag == False :
                 conflit = False
+            s+=1
                 
                         
                 
@@ -196,5 +198,5 @@ def demo() :
     show_video(images,0)
     return
 
-demo()
+
     
