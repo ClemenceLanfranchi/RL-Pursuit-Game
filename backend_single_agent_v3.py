@@ -159,9 +159,10 @@ class Environment:
         return rewards
     
     def done(self):
-        if np.sum(self.reward())==400:
-            return True
-        return False
+        for moves in self.select_possible_actions(self.prey.position)[1:]:
+            if not list(self.prey.position + self.action_to_delta[moves]) in [list(i.position) for i in self.hunters]:
+                return False
+        return True
 
     def show(self):
         picture = ImageResult(self.shape,30,self.vision)
