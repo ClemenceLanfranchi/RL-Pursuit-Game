@@ -95,7 +95,7 @@ def act_with_epsilon_greedy(s, q):
     return a
 
 # Evaluate a policy on n runs
-def evaluate_policy(q,env,n,h,explore_type):
+def evaluate_policy(q,env,n,h):
     success_rate = 0.0
     mean_return = 0.0
 
@@ -139,7 +139,7 @@ def main():
 
     behaviour_success_rate_monitor = np.zeros([n_episode,1])
     behaviour_discounted_return_monitor = np.zeros([n_episode,1])
-    
+    rewards_list = []
     for i_episode in range(n_episode):
         
         total_return = 0.0
@@ -155,11 +155,11 @@ def main():
         for i_step in range(max_horizon):
 
             # Act
-            obs_prime, r, done = env.step(actions)
+            obs_prime, rewards, done = env.step(actions)
             images.append(env.show())
-            
+
             states_prime = visions(env)
-            total_return += np.power(gamma,i_step) *r
+            #total_return += np.power(gamma,i_step) *r
             
 
             # Select an action
@@ -170,24 +170,23 @@ def main():
 
             # Update a Q value table
             for i in range(env.nb_hunters):
-                q_table[states[i].tobytes(), actions[i]] = q_learning_update(q_table,states[i].tobytes(),actions[i],r,states_prime[i].tobytes())
+                q_table[states[i].tobytes(), actions[i]] = q_learning_update(q_table,states[i].tobytes(),actions[i],rewards[i],states_prime[i].tobytes())
 
             # Transition to new state
             states = states_prime.copy()
             actions = actions_prime.copy()
+            
 
             if done:
-                window.append(r)
+                window.append(np.sum(rewards))
                 last_100 = window.count(1)
 
-                greedy_success_rate_monitor[i_episode-1,0], greedy_discounted_return_monitor[i_episode-1,0]= evaluate_policy(q_table,env,eval_steps,max_horizon,GREEDY)
-                behaviour_success_rate_monitor[i_episode-1,0], behaviour_discounted_return_monitor[i_episode-1,0] = evaluate_policy(q_table,env,eval_steps,max_horizon,explore_method)
-                if verbose:
-                    print("Episode: {0}\t Num_Steps: {1:>4}\tTotal_Return: {2:>5.2f}\tFinal_Reward: {3}\tEpsilon: {4:.3f}\tSuccess Rate: {5:.3f}\tLast_100: {6}".format(i_episode, i_step, total_return, r, epsilon,greedy_success_rate_monitor[i_episode-1,0],last_100))
-                    #print "Episode: {0}\t Num_Steps: {1:>4}\tTotal_Return: {2:>5.2f}\tTermR: {3}\ttau: {4:.3f}".format(i_episode, i_step, total_return, r, tau)
-
+                #greedy_success_rate_monitor[i_episode-1,0], greedy_discounted_return_monitor[i_episode-1,0]= evaluate_policy(q_table,env,eval_steps,max_horizon)
+        
                 break
-            
+        
+        rewards_list.append(np.sum(rewards))
+        
         if i_episode%100==0:
             show_video(images, i_episode)
 
@@ -197,16 +196,11 @@ def main():
         tau = init_tau + i_episode * tau_inc
 
     plt.figure(0)
-    plt.plot(range(0,n_episode,10),greedy_success_rate_monitor[0::10,0])
-    plt.title("Greedy policy with {0} and {1}".format(rl_algorithm,explore_method))
+    plt.plot(rewards_list)
+    #plt.title("Greedy policy with {0} and {1}".format(rl_algorithm))
     plt.xlabel("Steps")
-    plt.ylabel("Success Rate")
+    plt.ylabel("rewards")
 
-    plt.figure(1)
-    plt.plot(range(0,n_episode,10),behaviour_success_rate_monitor[0::10,0])
-    plt.title("Behaviour policy with {0} and {1}".format(rl_algorithm,explore_method))
-    plt.xlabel("Steps")
-    plt.ylabel("Success Rate")
     plt.show()
         
 if __name__ == "__main__":
