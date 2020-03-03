@@ -81,26 +81,27 @@ class Environment:
         
         #check for incompatible behaviour
         moving = [True, True , True, True, True]
-        for i in range(self.nb_hunters):
-            if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
-                moving[0]=False
-                pos_prey = self.prey.position
-                moving[i+1] = False
-                pos_hunters[i] = self.hunters[i].position
-            for j in range(i+1,self.nb_hunters):
-                if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
-                    moving[i+1]=False
-                    moving[j+1]=False
+        conflit = True
+        while conflit:
+            flag = False
+            for i in range(self.nb_hunters):
+                if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
+                    moving[0]=False
+                    pos_prey = self.prey.position
+                    moving[i+1] = False
                     pos_hunters[i] = self.hunters[i].position
-                    pos_hunters[j] = self.hunters[i].position
-                    
-        for i in range(self.nb_hunters):
-            if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
-                moving[i+1] = False
-            for j in range(i+1,self.nb_hunters):
-                if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
-                    moving[i+1]=False
-                    moving[j+1]=False
+                    flag = True
+                for j in range(i+1,self.nb_hunters):
+                    if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
+                        moving[i+1]=False
+                        moving[j+1]=False
+                        pos_hunters[i] = self.hunters[i].position
+                        pos_hunters[j] = self.hunters[i].position
+                        flag = True
+            if flag == False :
+                conflit = False
+                
+                        
                 
                 
         #update the agents positions if needed
@@ -163,7 +164,7 @@ class Environment:
             if not list(self.prey.position + self.action_to_delta[moves]) in [list(i.position) for i in self.hunters]:
                 return False
         return True
-
+    
     def show(self):
         picture = ImageResult(self.shape,30,self.vision)
         return picture.draw_obs(self.get_all_positions())
