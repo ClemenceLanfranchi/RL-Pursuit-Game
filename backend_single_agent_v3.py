@@ -84,12 +84,25 @@ class Environment:
         for i in range(self.nb_hunters):
             if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
                 moving[0]=False
+                pos_prey = self.prey.position
+                moving[i+1] = False
+                pos_hunters[i] = self.hunters[i].position
+            for j in range(i+1,self.nb_hunters):
+                if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
+                    moving[i+1]=False
+                    moving[j+1]=False
+                    pos_hunters[i] = self.hunters[i].position
+                    pos_hunters[j] = self.hunters[i].position
+                    
+        for i in range(self.nb_hunters):
+            if pos_prey[0] == pos_hunters[i][0] and pos_prey[1] == pos_hunters[i][1]:
                 moving[i+1] = False
             for j in range(i+1,self.nb_hunters):
                 if pos_hunters[i][0] == pos_hunters[j][0] and pos_hunters[i][1] == pos_hunters[j][1] :
                     moving[i+1]=False
                     moving[j+1]=False
-        
+                
+                
         #update the agents positions if needed
         if moving[0] :
             self.prey.position = pos_prey
