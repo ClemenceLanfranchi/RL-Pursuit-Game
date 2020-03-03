@@ -118,22 +118,30 @@ class Environment:
             self.prey.position=positions[-1]
         
     def reward(self):
-        reward = 0
+        rewards = [0,0,0,0]
         for i in range(self.nb_hunters):
             if np.abs(self.hunters[i].position[0]-self.prey.position[0])+np.abs(self.hunters[i].position[1]-self.prey.position[1]) ==1: #the hunter is next to the prey
-                reward+=10
-        
-        if reward == 40: #the 4 hunters have circled the prey
-            return 100;
+                rewards[i]+=10
+                
+         if sum(rewards) == 40: #the 4 hunters have circled the prey
+            return [100,100,100,100];
         
         nb_possible_actions_prey = len(self.select_possible_actions(self.prey.position))
-        if reward == 30 and nb_possible_actions_prey==4: #there are 3 hunters around the prey + 1 wall
-            return 100;
+        if sum(rewards) == 30 and nb_possible_actions_prey==4: #there are 3 hunters around the prey + 1 wall
+            return [100,100,100,100];
         
-        if reward == 20 and nb_possible_actions_prey==3: #there are 2 huters around the prey + 2 walls
-            return 100;
+        if sum(rewards) == 20 and nb_possible_actions_prey==3: #there are 2 huters around the prey + 2 walls
+            return [100,100,100,100];
         
-        return reward
+        if sum(rewards) >10 :
+            for i in range(self.nb_hunters):
+                rewards[i] = rewards[i]+int(rewards[i]!=0) * 5 * sum(rewards)//10
+        
+        for i in range(self.nb_hunters):
+            if np.abs(self.hunters[i].position[0]-self.prey.position[0])<= vision and np.abs(self.hunters[i].position[1]-self.prey.position[1]) <=vision: #the hunter is next to the prey
+                rewards[i]+=1
+        
+        return rewards
     
     def done(self):
         if self.reward==100:
