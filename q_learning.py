@@ -30,6 +30,7 @@ SOFTMAX = "softmax"
 rl_algorithm = SARSA #Q_LEARNING
 explore_method = EPSILON_GREEDY #SOFTMAX
 
+
 def surrounding_state(env, hunter):
     #positions of the hunters and prey and walls if they are visible
     #hunter : index of hunter in list of hunters
@@ -95,6 +96,14 @@ def q_learning_update(q,s,a,r,s_prime):
     td = r + gamma * q[s_prime][a_max] - q[s][a]
     return q[s][a] + alpha * td
 
+# Act with epsilon greedy
+def act_with_epsilon_greedy(s, q):
+    a = np.random.choice(np.argwhere(q[s]==np.max(q[s])).flatten())
+    #print("a greedy", a)
+    if np.random.rand() < epsilon:
+        a = np.random.randint(5)
+    return a
+
 # Compute SARSA update
 def sarsa_update(q,s,a,r,s_prime,a_prime):
     td = r + gamma * q[s_prime][a_prime] - q[s][a]
@@ -112,13 +121,6 @@ def act_with_softmax(s, q):
     cumsum_a = np.cumsum(prob_a)
     return np.where(np.random.rand() < cumsum_a)[0][0]
 
-# Act with epsilon greedy
-def act_with_epsilon_greedy(s, q):
-    a = np.random.choice(np.argwhere(q[s]==np.max(q[s])).flatten())
-    #print("a greedy", a)
-    if np.random.rand() < epsilon:
-        a = np.random.randint(5)
-    return a
 
 # Evaluate a policy on n runs
 def evaluate_policy(q,env,n,h):
@@ -155,33 +157,37 @@ def main():
     print("n_episode ", n_episode)
     max_horizon = 100
     
-    
     rewards_list = []
+    successes = []
     for i_episode in range(n_episode):
+        
         
         env.reset()
         states = visions(env)
         actions = []
-        
-        # Select the first action in this episode
+         # Select the first action in this episode
         if explore_method == SOFTMAX:
             for i in range(env.nb_hunters):
-            actions.append(act_with_softmax(states[i].tobytes(), q_table))
+                actions.append(act_with_softmax(states[i].tobytes(), q_table))
         elif explore_method == EPSILON_GREEDY:
             for i in range(env.nb_hunters):
-            actions.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
+                actions.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
         else:
             raise ValueError("Wrong Explore Method:".format(explore_method))
         
+        
         images =[env.show()]
+        rewards_episode = []
         
         for i_step in range(max_horizon):
 
             # Act
             obs_prime, rewards, done = env.step(actions)
             images.append(env.show())
-
-            states_prime = visions(env)         
+            rewards_episode.append(sum(rewards))
+            states_prime = visions(env)
+            #total_return += np.power(gamma,i_step) *r
+            
 
             # Select an action
             actions_prime = []
@@ -207,31 +213,41 @@ def main():
             states = states_prime.copy()
             actions = actions_prime.copy()
             
-            if done:
-                print("done")
-                break
-        
-        rewards_list.append(np.sum(rewards))
-        
-        if (i_episode+1)%1000==0:
-            show_video(images, i_episode)
-            print(len(q_table))
 
-        if (i_episode)%100==0:
-            # Schedule for epsilon
+            if done:
+                successes.append(1)
+        
+                break
+            if i_step == max_horizon-1 :
+                successes.append(0)
+                
+        rewards_list.append(np.mean(rewards_episode))
+        
+        if i_episode%100==0:
+            show_video(images, i_episode)
             epsilon = epsilon * epsilon_decay
-            # Schedule for tau
-            tau = init_tau + i_episode * tau_inc
+        # Schedule for epsilon
+        
+        
+        # Schedule for tau
+        tau = init_tau + i_episode * tau_inc
 
     plt.figure(0)
-    plt.plot(rewards_list)
-    plt.xlabel("Steps")
+    plt.plot([np.mean(rewards_list[i*100:(i+1)*100]) for i in range(n_episode//100)])
+    #plt.title("Greedy policy with {0} and {1}".format(rl_algorithm))
+    plt.xlabel("100 Steps")
     plt.ylabel("rewards")
-
+    plt.show()
+    
+    plt.figure(1)
+    plt.plot([np.mean(successes[i*100:(i+1)*100]) for i in range(n_episode//100)])
+    #plt.title("Greedy policy with {0} and {1}".format(rl_algorithm))
+    plt.xlabel("Steps")
+    plt.ylabel("Success rate")
     plt.show()
         
 if __name__ == "__main__":
 
     main()
-        
-        
+    
+    
