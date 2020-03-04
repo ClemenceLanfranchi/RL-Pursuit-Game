@@ -100,7 +100,7 @@ class Environment(gym.Env):
                         moving[i+1]=False
                         moving[j+1]=False
                         pos_hunters[i] = self.hunters[i].position
-                        pos_hunters[j] = self.hunters[i].position
+                        pos_hunters[j] = self.hunters[j].position
                         flag = True
             if flag == False :
                 conflit = False
