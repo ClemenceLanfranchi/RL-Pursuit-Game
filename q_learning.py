@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Tue Mar  3 14:29:16 2020
-
-@author: cleme
-"""
 
 import numpy as np
 from collections import defaultdict 
