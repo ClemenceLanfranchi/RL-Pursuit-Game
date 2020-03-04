@@ -6,9 +6,12 @@ Created on Sun Mar  1 12:19:23 2020
 import numpy as np
 from visualization import ImageResult, show_video
 import time
+import gym
+from gym import spaces
 
-class Environment:
-    
+
+class Environment(gym.Env):
+    metadata = {'render.modes': ['human']}
     
     shape = 7
     vision = 2
@@ -26,13 +29,16 @@ class Environment:
     4:np.array([0,0])
     }
     
-    def __init__(self,shape=shape,vision=vision, nb_hunters = 4,positions = None, actions = list(range(4))):
+    def __init__(self,shape=shape,vision=vision, nb_hunters = 4,positions = None, actions = list(range(5))):
+        super(Environment,self).__init__()
         self.shape = shape
         self.nb_hunters = nb_hunters
         self.actions = actions
         self.step_nb = 0
         self.init_positions = positions
         self.vision = vision
+        self.observation_space = spaces.Box(low = np.array([[0,0],[0,0],[0,0],[0,0],[0,0]]),high = np.array([[shape-1,shape-1],[shape-1,shape-1],[shape-1,shape-1],[shape-1,shape-1],[shape-1,shape-1]]),dtype=np.int16)
+        self.action_space = spaces.Discrete(625)
         if positions == None:
             #hunters are put at the four corners of the environment and the prey at the center
             positions = [np.array([0,0]),np.array([0,self.shape-1]),np.array([self.shape-1,0]),np.array([self.shape-1, self.shape-1]),np.array([self.shape//2, self.shape//2])]
@@ -115,7 +121,7 @@ class Environment:
         
         self.step_nb += 1
         
-        return self.get_all_positions(), self.reward(), self.done()
+        return self.get_all_positions(), self.reward(), self.done(), {}
         
     def get_all_positions(self) :
         positions = [self.prey.position]
@@ -133,7 +139,10 @@ class Environment:
         for i in range(self.nb_hunters):
             self.hunters[i].position=positions[i]
             self.prey.position=positions[-1]
-        
+    
+    def render(self, mode='human', close=False):
+        print(self.reward)
+    
     def reward(self):
         vision = self.vision
         rewards = [0,0,0,0]
@@ -192,11 +201,9 @@ class Agent:
 def demo() :
     env = Environment()
     images =[env.show()]
+    print(env.observation_space.low)
     for i in range(100):
         env.step(np.random.randint(5, size=4))
         images.append(env.show())
     show_video(images,0)
     return
-
-
-    
