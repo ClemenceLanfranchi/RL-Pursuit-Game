@@ -3,7 +3,7 @@
 """
 Created on Sun Mar  1 18:19:26 2020
 
-@author: ireneburger
+@author:
 """
 
 from PIL import Image, ImageDraw
