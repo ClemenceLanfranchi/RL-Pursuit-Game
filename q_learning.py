@@ -155,7 +155,7 @@ def main():
         for i_step in range(max_horizon):
 
             # Act
-            obs_prime, rewards, done = env.step(actions)
+            obs_prime, rewards, done, info = env.step(actions)
             images.append(env.show())
             rewards_episode.append(sum(rewards))
             states_prime = visions(env)         
