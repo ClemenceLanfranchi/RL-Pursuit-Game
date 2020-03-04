@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Sun Mar  1 12:19:23 2020
-@author: Romain
-"""
+
 import numpy as np
 from visualization import ImageResult, show_video
 import time
