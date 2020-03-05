@@ -73,14 +73,18 @@ def surrounding_state(env, hunter):
         pos_wall_y = -100    
     
     state.append(np.array([pos_wall_x,pos_wall_y]))
-    return state
+    r = []
+    for i in state:
+        r += list(r)
+    
+    return r
 
 def visions(env):
     #array of the surrounding states of all hunters
     visions = []
     for i in range(env.nb_hunters):
         visions.append(surrounding_state(env,i))
-    return np.array(visions)
+    return visions
 
 # Compute Q-Learning update
 def q_learning_update(q,s,a,r,s_prime):
@@ -142,10 +146,10 @@ def main():
         # Select the first action in this episode
         if explore_method == EPSILON_GREEDY:
             for i in range(env.nb_hunters):
-                actions.append(act_with_epsilon_greedy(states[i].tobytes(), q_table))
+                actions.append(act_with_epsilon_greedy(tuple(states[i]), q_table))
         elif explore_method == SOFTMAX:
             for i in range(env.nb_hunters):
-                actions.append(act_with_softmax(states[i].tobytes(), q_table))
+                actions.append(act_with_softmax(tuple(states[i]), q_table))
         else:
             raise ValueError("Wrong Explore Method:".format(explore_method))
         
@@ -164,21 +168,21 @@ def main():
             actions_prime = []
             if explore_method == SOFTMAX:
                 for i in range(env.nb_hunters):
-                    actions_prime.append(act_with_softmax(states_prime[i].tobytes(), q_table))
+                    actions_prime.append(act_with_softmax(tuple(states_prime[i]), q_table))
             elif explore_method == EPSILON_GREEDY:
                 for i in range(env.nb_hunters):
-                    actions_prime.append(act_with_epsilon_greedy(states_prime[i].tobytes(), q_table))
+                    actions_prime.append(act_with_epsilon_greedy(tuple(states_prime[i]), q_table))
             else:
                 raise ValueError("Wrong Explore Method:".format(explore_method))
 
             # Update a Q value table
             if rl_algorithm == SARSA:
                 for i in range(env.nb_hunters):
-                    q_table[states[i].tobytes()][actions[i]] = sarsa_update(q_table,states[i].tobytes(),actions[i],rewards[i],states_prime[i].tobytes(),actions_prime[i])
+                    q_table[tuple(states[i])][actions[i]] = sarsa_update(q_table,tuple(states[i]),actions[i],rewards[i],tuple(states_prime[i]),actions_prime[i])
 
             elif rl_algorithm == Q_LEARNING:
                 for i in range(env.nb_hunters):
-                    q_table[states[i].tobytes()][actions[i]] = q_learning_update(q_table,states[i].tobytes(),actions[i],rewards[i],states_prime[i].tobytes())
+                    q_table[tuple(states[i])][actions[i]] = q_learning_update(q_table,tuple(states[i]),actions[i],rewards[i],tuple(states_prime[i]))
             else:
                 raise ValueError("Wrong RL algorithm:".format(rl_algorithm))
                 
