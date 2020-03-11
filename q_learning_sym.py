@@ -127,7 +127,7 @@ def symmetry(s):
     
     
 def rotate(state) :
-    new_state = copy.deepcopy(state)
+    new_state = state
     for i in range(0,len(state),2):  
         new_state[i],new_state[i+1] = state[i+1],-state[i]
         if new_state[i]==100:
@@ -137,7 +137,7 @@ def rotate(state) :
     return new_state
 
 def sym(state):
-    new_state = copy.deepcopy(state)
+    new_state = state
     for i in range(0,len(state),2):  
         new_state[i],new_state[i+1] = state[i+1],state[i]
     return new_state
@@ -203,7 +203,7 @@ def main():
     q_table = defaultdict(lambda: np.zeros(n_a))
     
     # Experimental setup
-    n_episode = 500
+    n_episode = 1000
     print("n_episode ", n_episode)
     max_horizon = 300
     

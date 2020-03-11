@@ -2,7 +2,6 @@
 
 import numpy as np
 from visualization import ImageResult, show_video
-import time
 import gym
 from gym import spaces
 
@@ -19,10 +18,10 @@ class Environment(gym.Env):
     step_nb = 0
     
     action_to_delta = {
-    0:np.array([0,1]),
+    0:np.array([1,0]),
     1:np.array([0,-1]),
-    2:np.array([1,0]),
-    3:np.array([-1,0]),
+    2:np.array([-1,0]),
+    3:np.array([0,1]),
     4:np.array([0,0])
     }
     
@@ -58,13 +57,13 @@ class Environment(gym.Env):
         p = []
         p.append(4)
         if position[0]>0 :
-            p.append(3)
-        if position[0] < self.shape -1 :
             p.append(2)
+        if position[0] < self.shape -1 :
+            p.append(0)
         if position[1] > 0 :
             p.append(1)
         if position[1] < self.shape -1:
-            p.append(0)
+            p.append(3)
         return p
             
     def step(self,actions):
@@ -148,14 +147,14 @@ class Environment(gym.Env):
                 rewards[i]+=10
                 
         if sum(rewards) == 40: #the 4 hunters have circled the prey
-            return [100,100,100,100];
+            return [100,100,100,100]
         
         nb_possible_actions_prey = len(self.select_possible_actions(self.prey.position))
         if sum(rewards) == 30 and nb_possible_actions_prey==4: #there are 3 hunters around the prey + 1 wall
-            return [100,100,100,100];
+            return [100*int(rewards[i]!=0) for i in range(len(rewards))]
         
         if sum(rewards) == 20 and nb_possible_actions_prey==3: #there are 2 huters around the prey + 2 walls
-            return [100,100,100,100];
+            return [100*int(rewards[i]!=0) for i in range(len(rewards))]
         
         if sum(rewards) >10 :
             for i in range(self.nb_hunters):
