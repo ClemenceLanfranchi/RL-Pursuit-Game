@@ -146,15 +146,8 @@ class Environment(gym.Env):
             if np.abs(self.hunters[i].position[0]-self.prey.position[0])+np.abs(self.hunters[i].position[1]-self.prey.position[1]) ==1: #the hunter is next to the prey
                 rewards[i]+=10
                 
-        if sum(rewards) == 40: #the 4 hunters have circled the prey
-            return [100,100,100,100]
-        
-        nb_possible_actions_prey = len(self.select_possible_actions(self.prey.position))
-        if sum(rewards) == 30 and nb_possible_actions_prey==4: #there are 3 hunters around the prey + 1 wall
-            return [100*int(rewards[i]!=0) for i in range(len(rewards))]
-        
-        if sum(rewards) == 20 and nb_possible_actions_prey==3: #there are 2 huters around the prey + 2 walls
-            return [100*int(rewards[i]!=0) for i in range(len(rewards))]
+        if self.done():
+            rewards = list(10*np.array(rewards))
         
         if sum(rewards) >10 :
             for i in range(self.nb_hunters):
