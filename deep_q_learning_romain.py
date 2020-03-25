@@ -38,7 +38,7 @@ class DeepQ:
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(512, input_dim=self.state_size, activation='relu'))
+        model.add(Dense(256, input_dim=self.state_size, activation='relu'))
         model.add(Dense(256, activation='relu'))
         model.add(Dense(self.action_size, activation='linear'))
         model.compile(loss='mse',
